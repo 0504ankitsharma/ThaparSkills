@@ -1,62 +1,99 @@
-'use client'
+"use client";
 
-import { useUser } from '@clerk/nextjs'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import { User, Settings, LogOut } from 'lucide-react'
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { User, Loader2, LogIn } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function ProfilePage() {
-  const { user } = useUser()
-  const router = useRouter()
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    // Redirect to user's own profile if they're authenticated
     if (user) {
-      // This will redirect to their profile once they have one
-      // For now, redirect to dashboard
-      router.push('/dashboard')
+      setRedirecting(true);
+      const timer = setTimeout(() => {
+        router.push("/dashboard");
+      }, 1500); // slight delay for smooth animation
+      return () => clearTimeout(timer);
     }
-  }, [user, router])
+  }, [user, router]);
 
-  if (!user) {
+  // Loader while Clerk fetches user
+  if (!isLoaded) {
     return (
       <div className="min-h-screen bg-neutral-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
-            <User className="w-8 h-8 text-white" />
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  // If no user → show Sign In
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-neutral-100 flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white shadow-lg rounded-2xl p-8 text-center max-w-md w-full"
+        >
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-full mb-4">
+            <User className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-neutral-900 mb-2">
             Profile Not Found
           </h1>
-          <p className="text-neutral-600 mb-4">
-            Please sign in to view your profile
+          <p className="text-neutral-600 mb-6">
+            Please sign in to view your profile and dashboard.
           </p>
           <button
-            onClick={() => router.push('/sign-in')}
-            className="btn-primary"
+            onClick={() => router.push("/sign-in")}
+            className="w-full py-3 rounded-xl text-white font-medium bg-gradient-to-r from-primary to-blue-500 hover:opacity-90 transition flex items-center justify-center gap-2"
           >
+            <LogIn className="w-5 h-5" />
             Sign In
           </button>
-        </div>
+        </motion.div>
       </div>
-    )
+    );
   }
 
+  // If user exists → Show redirect animation
   return (
-    <div className="min-h-screen bg-neutral-100 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
-            <User className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-neutral-100 flex items-center justify-center px-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white shadow-lg rounded-2xl p-10 text-center max-w-md w-full"
+      >
+        <div className="flex justify-center mb-4">
+          <div className="relative">
+            {user.imageUrl ? (
+              <img
+                src={user.imageUrl}
+                alt="Profile"
+                className="w-20 h-20 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center">
+                <User className="w-10 h-10 text-white" />
+              </div>
+            )}
           </div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-            Profile
-          </h1>
-          <p className="text-neutral-600">
-            Redirecting to your profile...
-          </p>
         </div>
-      </div>
+        <h1 className="text-2xl font-bold text-neutral-900 mb-1">
+          {user.fullName || "Student"}
+        </h1>
+        <p className="text-neutral-500 mb-6">Redirecting to your dashboard...</p>
+
+        {redirecting && (
+          <div className="flex justify-center mt-2">
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+          </div>
+        )}
+      </motion.div>
     </div>
-  )
+  );
 }

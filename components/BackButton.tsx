@@ -8,7 +8,10 @@ interface BackButtonProps {
   className?: string
 }
 
-export default function BackButton({ fallbackPath = '/dashboard', className = '' }: BackButtonProps) {
+export default function BackButton({
+  fallbackPath = '/dashboard',
+  className = '',
+}: BackButtonProps) {
   const router = useRouter()
 
   const handleBack = () => {
@@ -22,9 +25,14 @@ export default function BackButton({ fallbackPath = '/dashboard', className = ''
   return (
     <button
       onClick={handleBack}
-      className={`flex items-center gap-2 text-primary hover:text-blue-700 transition-colors ${className}`}
+      className={`
+        flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm bg-white hover:bg-primary/10 text-primary font-medium transition-all duration-200
+        hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50 ${className}
+      `}
     >
-      <ArrowLeft size={20} />
+      <div className="p-1 bg-primary/10 rounded-full flex items-center justify-center">
+        <ArrowLeft size={18} className="text-primary" />
+      </div>
       <span>Back</span>
     </button>
   )

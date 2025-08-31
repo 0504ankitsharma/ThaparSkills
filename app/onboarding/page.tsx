@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { User, GraduationCap, Calendar, BookOpen, Upload } from 'lucide-react'
+import { User, Loader2 } from 'lucide-react'
 import { getDepartmentFromRollNumber, getYearFromRollNumber } from '@/lib/helpers'
 
 const onboardingSchema = z.object({
@@ -56,27 +56,21 @@ export default function OnboardingPage() {
     formState: { errors },
   } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
-    defaultValues: {
-      skills: [],
-      year: 1,
-    },
+    defaultValues: { skills: [], year: 1 },
   })
 
   const watchedRollNumber = watch('roll_number')
   const watchedSkills = watch('skills')
 
-  // Auto-fill department and year from roll number (if it matches Thapar format)
-  if (watchedRollNumber && watchedRollNumber.length >= 9) {
-    const department = getDepartmentFromRollNumber(watchedRollNumber)
-    const year = getYearFromRollNumber(watchedRollNumber)
-    
-    if (department && !watch('department')) {
-      setValue('department', department)
+  // Auto-fill department/year based on roll number
+  useEffect(() => {
+    if (watchedRollNumber?.length >= 9) {
+      const dept = getDepartmentFromRollNumber(watchedRollNumber)
+      const year = getYearFromRollNumber(watchedRollNumber)
+      if (dept && !watch('department')) setValue('department', dept)
+      if (year && !watch('year')) setValue('year', year)
     }
-    if (year && !watch('year')) {
-      setValue('year', year)
-    }
-  }
+  }, [watchedRollNumber])
 
   const addSkill = () => {
     if (newSkill.trim() && !watchedSkills.includes(newSkill.trim())) {
@@ -85,225 +79,146 @@ export default function OnboardingPage() {
     }
   }
 
-  const removeSkill = (skillToRemove: string) => {
-    setValue('skills', watchedSkills.filter(skill => skill !== skillToRemove))
+  const removeSkill = (skill: string) => {
+    setValue('skills', watchedSkills.filter((s) => s !== skill))
   }
 
   const onSubmit = async (data: OnboardingFormData) => {
     if (!user) return
-    
     setIsSubmitting(true)
-    
+
     try {
-      const response = await fetch('/api/users', {
+      const res = await fetch('/api/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clerk_id: user.id,
-          ...data,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clerk_id: user.id, ...data }),
       })
 
-      if (response.ok) {
-        router.push('/dashboard')
-      } else {
-        throw new Error('Failed to create profile')
-      }
-    } catch (error) {
-      console.error('Error creating profile:', error)
-      alert('Failed to create profile. Please try again.')
+      if (res.ok) router.push('/dashboard')
+      else throw new Error('Profile creation failed')
+    } catch (err) {
+      console.error('Error:', err)
+      alert('Something went wrong. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  if (!user) {
-    return <div>Loading...</div>
-  }
+  if (!user) return <div>Loading...</div>
 
   return (
-    <div className="min-h-screen bg-neutral-100 py-12">
+    <div className="min-h-screen bg-neutral-50 py-12">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
-            <User className="w-8 h-8 text-white" />
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
+            <User size={28} />
           </div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-            Complete Your Profile
-          </h1>
-          <p className="text-neutral-600">
-            Tell us about yourself to get started with ThaparSkills
-          </p>
+          <h1 className="text-3xl font-bold text-neutral-900">Complete Your Profile</h1>
+          <p className="text-neutral-600 mt-1">Tell us about yourself to get started on ThaparSkills</p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">
-              Full Name
-            </label>
-            <input
-              type="text"
-              {...register('name')}
-              className="input-field"
-              placeholder="Enter your full name"
-            />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-            )}
-          </div>
-
-          {/* Roll Number */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">
-              Roll Number
-            </label>
-            <input
-              type="text"
-              {...register('roll_number')}
-              className="input-field"
-              placeholder="Enter your roll number"
-            />
-            {errors.roll_number && (
-              <p className="mt-1 text-sm text-red-600">{errors.roll_number.message}</p>
-            )}
-          </div>
-
-          {/* Department */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">
-              Department
-            </label>
-            <select {...register('department')} className="input-field">
-              <option value="">Select your department</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-            {errors.department && (
-              <p className="mt-1 text-sm text-red-600">{errors.department.message}</p>
-            )}
-          </div>
-
-          {/* Year */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">
-              Current Year
-            </label>
-            <select {...register('year', { valueAsNumber: true })} className="input-field">
-              {[1, 2, 3, 4, 5].map((year) => (
-                <option key={year} value={year}>
-                  Year {year}
-                </option>
-              ))}
-            </select>
-            {errors.year && (
-              <p className="mt-1 text-sm text-red-600">{errors.year.message}</p>
-            )}
-          </div>
-
-          {/* Bio */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">
-              Bio
-            </label>
-            <textarea
-              {...register('bio')}
-              rows={3}
-              className="input-field"
-              placeholder="Tell us a bit about yourself..."
-            />
-            {errors.bio && (
-              <p className="mt-1 text-sm text-red-600">{errors.bio.message}</p>
-            )}
-          </div>
-
-          {/* Skills */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">
-              Skills
-            </label>
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                className="input-field flex-1"
-                placeholder="Add a skill"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-              />
-              <button
-                type="button"
-                onClick={addSkill}
-                className="btn-primary"
-              >
-                Add
-              </button>
-            </div>
-            
-            {/* Selected Skills */}
-            <div className="flex flex-wrap gap-2 mb-2">
-              {watchedSkills.map((skill) => (
-                <span
-                  key={skill}
-                  className="inline-flex items-center gap-1 bg-secondary text-neutral-900 px-3 py-1 rounded-full text-sm"
-                >
-                  {skill}
-                  <button
-                    type="button"
-                    onClick={() => removeSkill(skill)}
-                    className="hover:text-red-600"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
+        {/* Form Card */}
+        <div className="bg-white shadow-sm rounded-xl p-6 sm:p-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Full Name */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Full Name</label>
+              <input {...register('name')} className="input-field" placeholder="Enter your full name" />
+              {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>}
             </div>
 
-            {/* Common Skills Suggestions */}
-            <div className="text-sm text-neutral-600">
-              <p className="mb-2">Popular skills:</p>
-              <div className="flex flex-wrap gap-1">
-                {commonSkills.map((skill) => (
-                  <button
-                    key={skill}
-                    type="button"
-                    onClick={() => {
-                      if (!watchedSkills.includes(skill)) {
-                        setValue('skills', [...watchedSkills, skill])
-                      }
-                    }}
-                    disabled={watchedSkills.includes(skill)}
-                    className={`px-2 py-1 rounded text-xs transition-colors ${
-                      watchedSkills.includes(skill)
-                        ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                        : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                    }`}
-                  >
+            {/* Roll Number */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Roll Number</label>
+              <input {...register('roll_number')} className="input-field" placeholder="Enter roll number" />
+              {errors.roll_number && <p className="text-sm text-red-500 mt-1">{errors.roll_number.message}</p>}
+            </div>
+
+            {/* Department */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Department</label>
+              <select {...register('department')} className="input-field">
+                <option value="">Select department</option>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+              {errors.department && <p className="text-sm text-red-500 mt-1">{errors.department.message}</p>}
+            </div>
+
+            {/* Year */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Current Year</label>
+              <select {...register('year', { valueAsNumber: true })} className="input-field">
+                {[1, 2, 3, 4, 5].map((yr) => <option key={yr} value={yr}>Year {yr}</option>)}
+              </select>
+              {errors.year && <p className="text-sm text-red-500 mt-1">{errors.year.message}</p>}
+            </div>
+
+            {/* Bio */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Bio</label>
+              <textarea {...register('bio')} rows={3} className="input-field" placeholder="Tell us a bit about yourself..." />
+              {errors.bio && <p className="text-sm text-red-500 mt-1">{errors.bio.message}</p>}
+            </div>
+
+            {/* Skills */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Skills</label>
+              <div className="flex gap-2 mb-3">
+                <input
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                  className="input-field flex-1"
+                  placeholder="Add a skill"
+                />
+                <button type="button" onClick={addSkill} className="btn-primary">Add</button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 mb-2">
+                {watchedSkills.map((skill) => (
+                  <span key={skill} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center gap-1">
                     {skill}
-                  </button>
+                    <button type="button" onClick={() => removeSkill(skill)} className="hover:text-red-500">×</button>
+                  </span>
                 ))}
               </div>
+
+              <div className="text-sm text-neutral-600">
+                <p className="mb-1">Quick add popular skills:</p>
+                <div className="flex flex-wrap gap-1">
+                  {commonSkills.map((skill) => (
+                    <button
+                      key={skill}
+                      type="button"
+                      onClick={() => !watchedSkills.includes(skill) && setValue('skills', [...watchedSkills, skill])}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        watchedSkills.includes(skill)
+                          ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                          : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {skill}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {errors.skills && <p className="text-sm text-red-500 mt-1">{errors.skills.message}</p>}
             </div>
 
-            {errors.skills && (
-              <p className="mt-1 text-sm text-red-600">{errors.skills.message}</p>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full btn-primary text-lg py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Creating Profile...' : 'Complete Profile'}
-          </button>
-        </form>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg py-3 transition flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
+              {isSubmitting ? 'Creating Profile...' : 'Complete Profile'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )

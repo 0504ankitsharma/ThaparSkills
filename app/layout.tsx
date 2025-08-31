@@ -1,5 +1,5 @@
-import { ClerkProvider } from '@clerk/nextjs'
 import { Inter } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 import AuthDebug from '@/components/AuthDebug'
 import { Suspense } from 'react'
@@ -16,25 +16,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Debug environment variable
-  console.log('Clerk publishable key:', process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? '✅ Set' : '❌ Missing')
-  
-  // Check if we're in the browser
-  if (typeof window !== 'undefined') {
-    console.log('Layout: Running in browser environment')
-  }
-  
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       appearance={{
-        baseTheme: undefined,
         variables: {
           colorPrimary: '#0065BD',
           colorBackground: '#F5F5F5',
         }
       }}
-      // Add these options to fix client-side initialization
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
       afterSignInUrl="/dashboard"
