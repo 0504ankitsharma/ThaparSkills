@@ -37,9 +37,9 @@ export default function ChatPage() {
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Load connection & messages
   useEffect(() => {
     if (connectionId) {
       loadConnection()
@@ -47,6 +47,7 @@ export default function ChatPage() {
     }
   }, [connectionId])
 
+  // Auto-scroll to bottom on messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -94,9 +95,7 @@ export default function ChatPage() {
       if (response.ok) {
         setNewMessage('')
         loadMessages()
-      } else {
-        throw new Error('Failed to send message')
-      }
+      } else throw new Error('Failed to send message')
     } catch (error) {
       console.error('Error sending message:', error)
       alert('Message failed. Try again.')
@@ -114,19 +113,26 @@ export default function ChatPage() {
     setScheduledTime('')
   }
 
-  if (!user) return <div>Loading...</div>
-
-  if (!connection) {
+  if (!user)
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen text-neutral-600">
+        <Loader2 className="animate-spin w-8 h-8 mr-2" />
+        Loading user info...
+      </div>
+    )
+
+  if (!connection)
+    return (
+      <div className="min-h-screen bg-neutral-50 flex flex-col">
         <Navbar />
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-neutral-900">Connection Not Found</h1>
-          <p className="text-neutral-500 mt-2">This connection does not exist.</p>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-neutral-900">Connection Not Found</h1>
+            <p className="text-neutral-500 mt-2">This connection does not exist.</p>
+          </div>
         </div>
       </div>
     )
-  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
@@ -161,10 +167,15 @@ export default function ChatPage() {
           style={{ maxHeight: '70vh' }}
         >
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-full text-neutral-400">
-              <Loader2 className="animate-spin w-6 h-6 mb-2" />
-              Loading messages...
-            </div>
+            [...Array(5)].map((_, i) => (
+              <div key={i} className="flex gap-2 items-start animate-pulse">
+                <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            ))
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-neutral-400">
               <Send className="w-8 h-8 mb-2" />
@@ -180,7 +191,7 @@ export default function ChatPage() {
                   className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-md ${
+                    className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-md break-words ${
                       isOwn
                         ? 'bg-gradient-to-r from-primary to-blue-500 text-white rounded-br-none'
                         : 'bg-neutral-100 text-neutral-900 rounded-bl-none'
@@ -198,7 +209,6 @@ export default function ChatPage() {
               )
             })
           )}
-          <div ref={messagesEndRef} />
         </div>
 
         {/* Message Input & Schedule */}
@@ -224,9 +234,9 @@ export default function ChatPage() {
           <button
             type="button"
             onClick={() => setScheduleModal(true)}
-            className="w-full bg-gradient-to-r from-primary to-blue-500 hover:from-blue-600 hover:to-blue-700 text-white py-2 rounded-full shadow-md transition font-medium"
+            className="w-full bg-gradient-to-r from-primary to-blue-500 hover:from-blue-600 hover:to-blue-700 text-white py-2 rounded-full shadow-md transition font-medium flex items-center justify-center gap-2"
           >
-            <Calendar size={16} className="inline mr-2" /> Schedule Session
+            <Calendar size={16} /> Schedule Session
           </button>
         </div>
 

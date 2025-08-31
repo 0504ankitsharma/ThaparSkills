@@ -11,18 +11,14 @@ export const metadata = {
   description: 'Connect with fellow Thapar University students to share and learn skills',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       appearance={{
         variables: {
           colorPrimary: '#0065BD',
-          colorBackground: '#F5F5F5',
+          colorBackground: 'transparent', // let CSS handle the background
         }
       }}
       signInUrl="/sign-in"
@@ -31,9 +27,11 @@ export default function RootLayout({
       afterSignUpUrl="/onboarding"
     >
       <html lang="en">
-        <body className={inter.className}>
+        <body className={`${inter.className} app-bg`}>
           <Suspense fallback={null}>
-            {children}
+            <div className="min-h-screen flex flex-col backdrop-blur-sm bg-white/10">
+              {children}
+            </div>
           </Suspense>
           <AuthDebug />
         </body>
