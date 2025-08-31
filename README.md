@@ -307,5 +307,6 @@ For support and questions:
 ---
 
 Built with ❤️ for Thapar University students
-#   T h a p a r S k i l l s  
+#   T h a p a r S k i l l s 
+ 
  
